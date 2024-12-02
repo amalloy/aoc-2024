@@ -3,15 +3,21 @@ module Main where
 import Control.Arrow ((&&&))
 
 import Data.List (sort)
+import Data.Map.Strict (findWithDefault, fromListWith, assocs)
 
 type Input = [(Int, Int)]
 
-part1 :: Input -> Int
-part1 = sum . map abs . uncurry (zipWith (-)) . sortEach . unzip
-  where sortEach (xs, ys) = (sort xs, sort ys)
+each :: (a -> b) -> (a, a) -> (b, b)
+each f (a, b) = (f a, f b)
 
-part2 :: Input -> ()
-part2 = const ()
+part1 :: Input -> Int
+part1 = sum . map abs . uncurry (zipWith (-)) . each sort . unzip
+
+part2 :: Input -> Int
+part2 = collate . each freqs . unzip
+  where freqs = fromListWith (+) . map (, 1)
+        collate (xs, ys) = sum . map score $ (assocs xs)
+          where score (x, n) = x * n * findWithDefault 0 x ys
 
 prepare :: String -> Input
 prepare = map (line . words) . lines
