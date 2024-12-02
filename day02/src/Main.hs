@@ -3,10 +3,10 @@ module Main where
 import Control.Arrow ((&&&))
 
 type Level = Int
-type Record = [Level]
-type Input = [Record]
+type Report = [Level]
+type Input = [Report]
 
-safe :: Record -> Bool
+safe :: Report -> Bool
 safe = liftA2 (&&) sameSign (all small) . deltas
   where sameSign [] = True
         sameSign (x:xs) = all (== signum x) $ map signum xs
