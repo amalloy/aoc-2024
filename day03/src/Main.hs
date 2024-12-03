@@ -5,7 +5,7 @@ import Control.Arrow ((&&&))
 import Control.Monad (replicateM)
 
 import Data.Char (isDigit)
-import Data.List (unfoldr)
+import Data.List (mapAccumL, unfoldr)
 
 import Text.Regex.Applicative (RE, psym, string, findFirstInfix)
 
@@ -35,8 +35,15 @@ findAll re = unfoldr go
 part1 :: Input -> Int
 part1 = sum . map runMul . findAll mul
 
-part2 :: Input -> ()
-part2 = const ()
+data Mode = Enabled | Disabled deriving Eq
+
+part2 :: Input -> Int
+part2 = sum . snd . mapAccumL go Enabled . findAll instruction
+  where go _s Do = (Enabled, 0)
+        go _s Dont = (Disabled, 0)
+        go s (MulInst m) = (s, case s of
+                                 Enabled -> runMul m
+                                 Disabled -> 0)
 
 prepare :: String -> Input
 prepare = id
