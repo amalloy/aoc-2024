@@ -1,6 +1,6 @@
 module Main where
 
-import Control.Applicative (asum)
+import Control.Applicative (asum, (<|>))
 import Control.Arrow ((&&&))
 import Control.Monad (replicateM)
 
@@ -12,10 +12,18 @@ import Text.Regex.Applicative (RE, psym, string, findFirstInfix)
 type Input = String
 
 data Mul = Mul Int Int deriving (Show, Eq, Ord)
+data Instruction = Do | Dont | MulInst Mul deriving (Show, Eq, Ord)
+
+op :: String -> RE Char a -> RE Char a
+op name r = string name *> string "(" *> r <* string ")"
 
 mul :: RE Char Mul
-mul = Mul <$> (string "mul(" *> decimal) <*> (string "," *> decimal <* string ")")
+mul = uncurry Mul <$> op "mul" ((,) <$> (decimal <* string ",") <*> decimal)
   where decimal = read <$> asum [replicateM n (psym isDigit) | n <- [1..3]]
+instruction :: RE Char Instruction
+instruction = (Do <$ op "do" (pure ()))
+          <|> (Dont <$ op "don't" (pure ()))
+          <|> (MulInst <$> mul)
 
 runMul :: Mul -> Int
 runMul (Mul x y) = x * y
