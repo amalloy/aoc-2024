@@ -1,6 +1,3 @@
-{-# LANGUAGE ApplicativeDo #-}
-{-# LANGUAGE LambdaCase #-}
-
 module Main where
 
 import Control.Arrow ((&&&))
