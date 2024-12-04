@@ -8,17 +8,18 @@ import Data.List (tails, transpose, isPrefixOf, sort)
 type Input = [String]
 
 rotations :: [[a]] -> [[[a]]]
-rotations = take 4 . iterate (reverse . transpose)
+rotations = take 4 . iterate rotate
+  where rotate = reverse . transpose
 
+-- Diagonals going only in the top-left to lower-right direction, starting anywhere
 diagonals :: [[a]] -> [[a]]
 diagonals [] = []
-diagonals arr@(_:more) = transpose (zipWith drop [0..] arr) ++ diagonals more
+diagonals arr@(_:more) = transpose (zipWith drop [0..] arr) <> diagonals more
 
 searchGrids :: [[a]] -> [[a]]
 searchGrids xs = do
   grid <- rotations xs
-  orientation <- [tails =<< grid, diagonals grid]
-  orientation
+  (tails =<< grid) <> diagonals grid
 
 part1 :: Input -> Int
 part1 = length . filter ("XMAS" `isPrefixOf`) . searchGrids
@@ -28,12 +29,14 @@ subMatricesOfSize n xs = do
   grid <- tails xs
   let window = take n grid
   guard $ length window == n
-  let lens = map (map (take n) . tails) window
-  transpose lens
+  transpose $ map (map (take n) . tails) window
 
 part2 :: Input -> Int
 part2 = length . filter isXmas . subMatricesOfSize 3
-  where isXmas [[a, _, b], [_, 'A', _], [c, _, d]] = sort [a, d] == "MS" && sort [b, c] == "MS"
+  where isXmas [[a,  _,  b],
+                [_, 'A', _],
+                [c,  _,  d]]
+          = sort [a, d] == "MS" && sort [b, c] == "MS"
         isXmas _ = False
 
 prepare :: String -> Input
