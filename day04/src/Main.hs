@@ -7,8 +7,8 @@ import Data.List (tails, transpose, isPrefixOf, sort)
 
 type Input = [String]
 
-transpositions :: [[a]] -> [[[a]]]
-transpositions = take 4 . iterate (reverse . transpose)
+rotations :: [[a]] -> [[[a]]]
+rotations = take 4 . iterate (reverse . transpose)
 
 diagonals :: [[a]] -> [[a]]
 diagonals [] = []
@@ -16,7 +16,7 @@ diagonals arr@(_:more) = transpose (zipWith drop [0..] arr) ++ diagonals more
 
 searchGrids :: [[a]] -> [[a]]
 searchGrids xs = do
-  grid <- transpositions xs
+  grid <- rotations xs
   orientation <- [tails =<< grid, diagonals grid]
   orientation
 
