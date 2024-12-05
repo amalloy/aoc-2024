@@ -26,8 +26,12 @@ input = Input <$> (ruleOrdering <* sym '\n') <*> many update
         toKv (Dependency before after) = (after, S.singleton before)
         update = (decimal `sepBy1` sym ',') <* sym '\n'
 
-part1 :: Input -> Input
-part1 = id
+part1 :: Input -> Int
+part1 (Input ordering updates) = sum . map middlePage . filter valid $ updates
+  where middlePage xs = xs !! (length xs `div` 2)
+        valid [] = True
+        valid (p:ps) | any (`S.member` (M.findWithDefault mempty p ordering)) ps = False
+                     | otherwise = valid ps
 
 part2 :: Input -> ()
 part2 = const ()
