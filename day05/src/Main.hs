@@ -2,6 +2,7 @@ module Main where
 
 import Control.Applicative (Alternative, many)
 import Control.Arrow ((&&&))
+import Data.Maybe (mapMaybe)
 
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
@@ -26,15 +27,30 @@ input = Input <$> (ruleOrdering <* sym '\n') <*> many update
         toKv (Dependency before after) = (after, S.singleton before)
         update = (decimal `sepBy1` sym ',') <* sym '\n'
 
+middlePage :: [a] -> a
+middlePage xs = xs !! (length xs `div` 2)
+
 part1 :: Input -> Int
 part1 (Input ordering updates) = sum . map middlePage . filter valid $ updates
-  where middlePage xs = xs !! (length xs `div` 2)
-        valid [] = True
+  where valid [] = True
         valid (p:ps) | any (`S.member` (M.findWithDefault mempty p ordering)) ps = False
                      | otherwise = valid ps
 
-part2 :: Input -> ()
-part2 = const ()
+part2 :: Input -> Int
+part2 (Input ordering updates) = sum . map middlePage . mapMaybe reorder $ updates
+  where reorder pages | pages == correctOrder = Nothing
+                      | otherwise = Just correctOrder
+          where correctOrder = go $ S.fromList pages
+                go :: S.Set Page -> [Page]
+                go queue = case S.lookupMin queue of
+                  Nothing -> []
+                  Just p -> let p' = firstPrintable p
+                            in p' : go (S.delete p' queue)
+                  where firstPrintable p =
+                          let deps = S.intersection queue (M.findWithDefault mempty p ordering)
+                          in case S.lookupMin deps of
+                            Nothing -> p
+                            Just dep -> firstPrintable dep
 
 prepare :: String -> Input
 prepare = maybe (error "no parse") id . match input
