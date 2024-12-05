@@ -4,6 +4,7 @@ import Control.Applicative (Alternative, many)
 import Control.Arrow ((&&&))
 import Data.Maybe (mapMaybe)
 
+import Data.Graph (reverseTopSort, graphFromEdges)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 
@@ -40,17 +41,11 @@ part2 :: Input -> Int
 part2 (Input ordering updates) = sum . map middlePage . mapMaybe reorder $ updates
   where reorder pages | pages == correctOrder = Nothing
                       | otherwise = Just correctOrder
-          where correctOrder = go $ S.fromList pages
-                go :: S.Set Page -> [Page]
-                go queue = case S.lookupMin queue of
-                  Nothing -> []
-                  Just p -> let p' = firstPrintable p
-                            in p' : go (S.delete p' queue)
-                  where firstPrintable p =
-                          let deps = S.intersection queue (M.findWithDefault mempty p ordering)
-                          in case S.lookupMin deps of
-                            Nothing -> p
-                            Just dep -> firstPrintable dep
+          where correctOrder = pageFromVertex <$> reverseTopSort graph
+                (graph, getNode, _) = graphFromEdges [(p, p, deps p) | p <- pages]
+                pageFromVertex v = let (p, _, _) = getNode v in p
+                queue = S.fromList pages
+                deps p = S.toList $ S.intersection queue (M.findWithDefault mempty p ordering)
 
 prepare :: String -> Input
 prepare = maybe (error "no parse") id . match input
