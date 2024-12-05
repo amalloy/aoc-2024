@@ -13,10 +13,9 @@ import Text.Regex.Applicative.Common (decimal)
 
 type Page = Int
 data Dependency = Dependency {before, after :: Page} deriving Show
-type RuleOrdering = M.Map Page (S.Set Page)
 type Update = [Page]
 
-data Input = Input RuleOrdering [Update] deriving Show
+data Input = Input (M.Map Page (S.Set Page)) [Update] deriving Show
 
 sepBy1 :: Alternative f => f a -> f b -> f [a]
 sepBy1 p sep = (:) <$> p <*> many (sep *> p)
