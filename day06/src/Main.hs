@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Arrow ((&&&))
+import Control.Monad qualified
 
 import Data.Array qualified as A
 import Data.Set qualified as S
@@ -23,23 +24,35 @@ data Entity = Empty | Obstructed deriving (Eq, Ord, Show)
 data Guard = Guard {face :: Direction, pos :: Coord} deriving (Eq, Ord, Show)
 data Input = Input Guard (Grid Entity) deriving (Eq, Ord, Show)
 
+inBounds :: Grid a -> Coord -> Bool
+inBounds = A.inRange . A.bounds
+
+step :: Grid Entity -> Guard -> Guard
+step grid (Guard d p) = Guard d' (move d' p)
+  where d' = head . filter walkable . iterate turnRight $ d
+        walkable candidateDir = not ((inBounds grid p') && (grid A.! p' == Obstructed))
+          where p' = move candidateDir p
+
 part1 :: Input -> Int
 part1 (Input guard grid) =
   S.size
   . S.fromList
-  . takeWhile inBounds
+  . takeWhile (inBounds grid)
   . map pos
-  . iterate step
+  . iterate (step grid)
   $ guard
-  where step :: Guard -> Guard
-        step (Guard d p) = Guard d' (move d' p)
-          where p' = move d p
-                d' | inBounds p' && (grid A.! p' == Obstructed) = turnRight d
-                   | otherwise = d
-        inBounds = A.inRange (A.bounds grid)
 
-part2 :: Input -> ()
-part2 = const ()
+part2 :: Input -> Int
+part2 (Input guard grid) = length . filter id $ do
+  c <- A.indices grid
+  Control.Monad.guard (c /= (pos guard))
+  let grid' = grid A.// [(c, Obstructed)]
+  return $ infiniteLoop grid'
+  where infiniteLoop g = go S.empty (takeWhile (inBounds g . pos)
+                                     (iterate (step g) guard))
+        go _ [] = False
+        go seen (g:gs) | S.member g seen = True
+                       | otherwise = go (S.insert g seen) gs
 
 prepare :: String -> Input
 prepare input = Input guard (A.array (V2 1 1, V2 (length $ head indexed) (length indexed))
