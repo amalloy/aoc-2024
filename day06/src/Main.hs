@@ -20,11 +20,23 @@ move :: Direction -> Coord -> Coord
 move (Direction d) c = c + d
 
 data Entity = Empty | Obstructed deriving (Eq, Ord, Show)
-data Guard = Guard Direction Coord deriving (Eq, Ord, Show)
+data Guard = Guard {face :: Direction, pos :: Coord} deriving (Eq, Ord, Show)
 data Input = Input Guard (Grid Entity) deriving (Eq, Ord, Show)
 
-part1 :: Input -> ()
-part1 = const ()
+part1 :: Input -> Int
+part1 (Input guard grid) =
+  S.size
+  . S.fromList
+  . takeWhile inBounds
+  . map pos
+  . iterate step
+  $ guard
+  where step :: Guard -> Guard
+        step (Guard d p) = Guard d' (move d' p)
+          where p' = move d p
+                d' | inBounds p' && (grid A.! p' == Obstructed) = turnRight d
+                   | otherwise = d
+        inBounds = A.inRange (A.bounds grid)
 
 part2 :: Input -> ()
 part2 = const ()
