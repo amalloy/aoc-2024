@@ -7,14 +7,15 @@ import Text.Regex.Applicative.Common (decimal)
 
 data Equation a = Equation a [a] deriving Show
 data Solution a = Solution a a [(Operator, a)] deriving Show
-data Operator = Plus | Times deriving (Show, Enum, Bounded)
+data Operator = Plus | Times | Cat deriving (Show, Enum, Bounded)
 type Input = [Equation Integer]
 
-apply :: Num a => Operator -> a -> a -> a
+apply :: (Read a, Show a, Num a) => Operator -> a -> a -> a
 apply Plus = (+)
 apply Times = (*)
+apply Cat = \a b -> read (show a <> show b)
 
-solutions :: (Num a, Ord a) => [Operator] -> Equation a -> [Solution a]
+solutions :: (Read a, Show a, Num a, Ord a) => [Operator] -> Equation a -> [Solution a]
 solutions ops (Equation goal (num:nums)) = Solution goal num <$> go num nums
   where go total atoms = case compare total goal of
           GT -> []
@@ -25,13 +26,15 @@ solutions ops (Equation goal (num:nums)) = Solution goal num <$> go num nums
                    op <- ops
                    ((op, x) :) <$> go (apply op total x) xs
 
-part1 :: Input -> Integer
-part1 = sum . map score
-  where score eq@(Equation goal _) | null (solutions [Times, Plus] eq) = 0
+solve :: [Operator] -> Input -> Integer
+solve ops = sum . map score
+  where score eq@(Equation goal _) | null (solutions ops eq) = 0
                                    | otherwise = goal
+part1 :: Input -> Integer
+part1 = solve [Times, Plus]
 
-part2 :: Input -> ()
-part2 = const ()
+part2 :: Input -> Integer
+part2 = solve [Times, Plus, Cat]
 
 prepare :: String -> Input
 prepare = maybe (error "no parse") id . match input
