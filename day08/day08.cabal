@@ -25,6 +25,7 @@ executable day08
                      , parsec
                      , regex-applicative
                      , recursion-schemes
+                     , linear
                      , lens
                      , mtl
                      , transformers
