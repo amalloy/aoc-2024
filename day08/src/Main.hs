@@ -18,19 +18,21 @@ type Frequency = Char
 
 data Input = Input (Coord, Coord) (M.Map Frequency (S.Set Coord)) deriving Show
 
-part1 :: Input -> Int
-part1 (Input bounds freqs) = length . nubOrd . filter inBounds $ antinodes
-  where inBounds = inRange bounds
-        antinodes = do
+solve :: (Coord -> Coord -> [Coord]) -> Input -> Int
+solve extend (Input bounds freqs) = length . nubOrd $ antinodes
+  where antinodes = do
           (_, antennas) <- M.assocs freqs
           let locs = toList antennas
           (a, b) <- (,) <$> locs <*> locs
           guard $ a > b
-          let delta = a - b
-          [a + delta, b - delta]
+          valid (extend a b) <> valid (extend b a)
+        valid = takeWhile (inRange bounds)
 
-part2 :: Input -> ()
-part2 = const ()
+part1 :: Input -> Int
+part1 = solve $ \a b -> [a + (a - b)]
+
+part2 :: Input -> Int
+part2 = solve $ \a b -> iterate (+ (a - b)) a
 
 prepare :: String -> Input
 prepare text = Input bounds antennas
