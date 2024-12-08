@@ -1,7 +1,7 @@
 module Main where
 
 import Control.Arrow ((&&&))
-import Control.Monad (guard)
+import Control.Monad (join)
 
 import Data.Char (isAlphaNum)
 import Data.Foldable (toList)
@@ -22,11 +22,8 @@ solve :: (Coord -> Coord -> [Coord]) -> Input -> Int
 solve extend (Input bounds freqs) = length . nubOrd $ antinodes
   where antinodes = do
           (_, antennas) <- M.assocs freqs
-          let locs = toList antennas
-          (a, b) <- (,) <$> locs <*> locs
-          guard $ a > b
-          valid (extend a b) <> valid (extend b a)
-        valid = takeWhile (inRange bounds)
+          (a, b) <- filter (uncurry (/=)) . toList . join S.cartesianProduct $ antennas
+          takeWhile (inRange bounds) (extend a b)
 
 part1 :: Input -> Int
 part1 = solve $ \a b -> [a + (a - b)]
