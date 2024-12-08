@@ -31,17 +31,21 @@ part1 = solve $ \a b -> [a + (a - b)]
 part2 :: Input -> Int
 part2 = solve $ \a b -> iterate (+ (a - b)) a
 
+labelGrid :: String -> ((V2 Int, V2 Int), [(V2 Int, Char)])
+labelGrid text = ( (V2 1 1, V2 (length rows) (length $ head rows))
+                 , concat $ zipWith (\y r -> zipWith (\x c -> (V2 y x, c)) [1..] r) [1..] rows
+                 )
+  where rows = lines text
+
 prepare :: String -> Input
 prepare text = Input bounds antennas
-  where bounds = (V2 1 1, V2 (length indexed) (length $ head indexed))
+  where (bounds, indexed) = labelGrid text
         antennas = M.fromListWith S.union $ do
-          (pos, c) <- concat indexed
+          (pos, c) <- indexed
           case c of
             '.' -> []
             x | isAlphaNum x -> [(x, S.singleton pos)]
               | otherwise -> error $ "Unexpected character " <> [x]
-        indexed :: [[(Coord, Char)]]
-        indexed = zipWith (\y r -> zipWith (\x c -> (V2 y x, c)) [1..] r) [1..] (lines text)
 
 main :: IO ()
 main = readFile "input.txt" >>= print . (part1 &&& part2) . prepare
