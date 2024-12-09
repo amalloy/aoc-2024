@@ -21,6 +21,7 @@ executable day09
               -Wincomplete-uni-patterns
               -Wredundant-constraints
   build-depends:       base >= 4.7 && < 5
+                     , array
                      , containers
                      , parsec
                      , regex-applicative
@@ -29,4 +30,3 @@ executable day09
                      , mtl
                      , transformers
                      , QuickCheck
-
