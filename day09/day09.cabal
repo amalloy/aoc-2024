@@ -23,6 +23,7 @@ executable day09
   build-depends:       base >= 4.7 && < 5
                      , array
                      , containers
+                     , heaps
                      , parsec
                      , regex-applicative
                      , recursion-schemes

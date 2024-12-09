@@ -1,15 +1,21 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase, PartialTypeSignatures #-}
 
 module Main where
 
 import Control.Arrow ((&&&))
+import Control.Monad (guard, when)
+import Control.Monad.ST (ST, runST)
 import Data.Array (assocs)
-import Data.Array.ST (newListArray, runSTArray, readArray, writeArray)
+import Data.Array.ST (STArray, newArray, newListArray, runSTArray, readArray, writeArray, modifyArray')
 import Data.Char (digitToInt, isDigit)
+import Data.Foldable (sequenceA_)
+import Data.List (mapAccumL, sortOn)
+import Data.Maybe (catMaybes)
+
+import qualified Data.Heap as H
 
 data Block = Free | File Int deriving Show
-
-type Input = [Block]
+data Chunk = Chunk Int Block deriving Show
 
 defragment :: [Block] -> [(Int, Block)]
 defragment blocks = assocs $ runSTArray $ do
@@ -24,21 +30,47 @@ defragment blocks = assocs $ runSTArray $ do
                                    *> go (p + 1) (q - 1)
   uncurry go bounds
 
-part1 :: Input -> Int
-part1 = checksum . defragment
+part1 :: String -> Int
+part1 = checksum . defragment . prepare (\len b bs -> replicate len b <> bs)
   where checksum = sum . map score
         score (_, Free) = 0
         score (pos, (File num)) = pos * num
 
-part2 :: Input -> ()
-part2 = const ()
+indexBlocks :: [Chunk] -> [(Int, Chunk)]
+indexBlocks = snd . mapAccumL go 0
+  where go ix c@(Chunk len _) = (ix + len, (ix, c))
 
-prepare :: String -> Input
-prepare = file 0 . map digitToInt . filter isDigit
+part2 :: String -> Int
+part2 input = runST $ do
+  let chunks = prepare (\len b bs -> Chunk len b : bs) input
+      blocks = indexBlocks chunks
+      inputFiles = reverse [(ix, len, num) | (ix, Chunk len (File num)) <- blocks]
+  freeHeaps <- newArray (1, 9) H.empty :: ST s (STArray s Int (H.Heap Int))
+  sequenceA_ $ do
+    (ix, Chunk len Free) <- blocks
+    guard $ len >= 1
+    pure $ modifyArray' freeHeaps len (H.insert ix)
+  let firstFreeBlock :: Int -> ST _ (Maybe (Int, (Int, (H.Heap Int))))
+      firstFreeBlock size = fmap (size,) . H.viewMin <$> readArray freeHeaps size
+      moveLeft (ix, len, num) = do
+        firsts <- catMaybes <$> traverse firstFreeBlock [len..9]
+        case sortOn (fst . snd) . filter ((< ix) . fst . snd) $ firsts of
+          [] -> pure (ix, len, num)
+          ((freeSize, (freeIx, h')):_) -> do
+            writeArray freeHeaps freeSize h'
+            when (freeSize > len) $ modifyArray' freeHeaps (freeSize - len) (H.insert (freeIx + len))
+            pure (freeIx, len, num)
+  sum . map score <$> traverse moveLeft inputFiles
+
+score :: (Int, Int, Int) -> Int
+score (ix, len, file) = file * (sum [ix..ix+len-1])
+
+prepare :: (Int -> Block -> [a] -> [a]) -> String -> [a]
+prepare f = file 0 . map digitToInt . filter isDigit
   where file _ [] = []
-        file n (size:rest) = replicate size (File n) <> empty n rest
+        file n (size:rest) = f size (File n) $ empty n rest
         empty _ [] = []
-        empty n (size:rest) = replicate size Free <> file (n + 1) rest
+        empty n (size:rest) = f size Free $ file (n + 1) rest
 
 main :: IO ()
-main = readFile "input.txt" >>= print . (part1 &&& part2) . prepare
+main = readFile "input.txt" >>= print . (part1 &&& part2)
