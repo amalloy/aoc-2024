@@ -16,6 +16,7 @@ import qualified Data.Heap as H
 
 data Block = Free | File Int deriving Show
 data Chunk = Chunk Int Block deriving Show
+data FileData = FileData {_id, _len, _fileNum :: Int} deriving Show
 
 defragment :: [Block] -> [(Int, Block)]
 defragment blocks = assocs $ runSTArray $ do
@@ -44,7 +45,7 @@ part2 :: String -> Int
 part2 input = runST $ do
   let chunks = prepare (\len b bs -> Chunk len b : bs) input
       blocks = indexBlocks chunks
-      inputFiles = reverse [(ix, len, num) | (ix, Chunk len (File num)) <- blocks]
+      inputFiles = reverse [FileData ix len num | (ix, Chunk len (File num)) <- blocks]
   freeHeaps <- newArray (1, 9) H.empty :: ST s (STArray s Int (H.Heap Int))
   sequenceA_ $ do
     (ix, Chunk len Free) <- blocks
@@ -52,18 +53,18 @@ part2 input = runST $ do
     pure $ modifyArray' freeHeaps len (H.insert ix)
   let firstFreeBlock :: Int -> ST _ (Maybe (Int, (Int, (H.Heap Int))))
       firstFreeBlock size = fmap (size,) . H.viewMin <$> readArray freeHeaps size
-      moveLeft (ix, len, num) = do
+      moveLeft orig@(FileData ix len num) = do
         firsts <- catMaybes <$> traverse firstFreeBlock [len..9]
         case sortOn (fst . snd) . filter ((< ix) . fst . snd) $ firsts of
-          [] -> pure (ix, len, num)
+          [] -> pure orig
           ((freeSize, (freeIx, h')):_) -> do
             writeArray freeHeaps freeSize h'
             when (freeSize > len) $ modifyArray' freeHeaps (freeSize - len) (H.insert (freeIx + len))
-            pure (freeIx, len, num)
+            pure $ FileData freeIx len num
   sum . map score <$> traverse moveLeft inputFiles
 
-score :: (Int, Int, Int) -> Int
-score (ix, len, file) = file * (sum [ix..ix+len-1])
+score :: FileData -> Int
+score (FileData ix len file) = file * (sum [ix..ix+len-1])
 
 prepare :: (Int -> Block -> [a] -> [a]) -> String -> [a]
 prepare f = file 0 . map digitToInt . filter isDigit
