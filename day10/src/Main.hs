@@ -4,6 +4,7 @@ import Control.Arrow ((&&&))
 import Control.Monad (guard)
 
 import Data.Char (digitToInt)
+import Data.Monoid (Sum(..))
 
 import qualified Data.Array as A
 import qualified Data.Set as S
@@ -14,14 +15,14 @@ import Linear.Vector (basis)
 type Height = Int
 type Input = A.Array (V2 Int) Height
 
-part1 :: Input -> Int
-part1 arr = sum . map score . A.assocs $ reachableSummits
-  where score (pos, summits) | arr A.! pos == 0 = S.size summits
-                             | otherwise = 0
+solve :: Monoid m => (V2 Int -> m) -> (m -> Int) -> Input -> Int
+solve base score arr = sum . map scoreSummit . A.assocs $ reachableSummits
+  where scoreSummit (pos, summits) | arr A.! pos == 0 = score summits
+                                   | otherwise = 0
         reachableSummits = A.array bounds $ do
           (pos, height) <- A.assocs arr
           pure (pos, if height == 9
-                 then S.singleton pos
+                 then base pos
                  else mconcat $ do
                    pos' <- (pos +) <$> ([id, negate] <*> basis)
                    guard $ A.inRange bounds pos'
@@ -29,8 +30,11 @@ part1 arr = sum . map score . A.assocs $ reachableSummits
                    pure $ reachableSummits A.! pos')
         bounds = (A.bounds arr)
 
-part2 :: Input -> ()
-part2 = const ()
+part1 :: Input -> Int
+part1 = solve S.singleton S.size
+
+part2 :: Input -> Int
+part2 = solve (const 1) getSum
 
 labelGrid :: String -> ((V2 Int, V2 Int), [(V2 Int, Char)])
 labelGrid text = ( (V2 1 1, V2 (length rows) (length $ head rows))
