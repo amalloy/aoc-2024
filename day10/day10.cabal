@@ -21,12 +21,13 @@ executable day10
               -Wincomplete-uni-patterns
               -Wredundant-constraints
   build-depends:       base >= 4.7 && < 5
+                     , array
                      , containers
                      , parsec
                      , regex-applicative
                      , recursion-schemes
+                     , linear
                      , lens
                      , mtl
                      , transformers
                      , QuickCheck
-
