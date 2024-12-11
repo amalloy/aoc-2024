@@ -30,11 +30,14 @@ blink m = M.unionsWith (+) $ do
   (label, count) <- M.assocs m
   pure (fmap (* count) (step label))
 
-part1 :: Input -> Int
-part1 = sum . M.elems . (!! 25) . iterate blink
+solve :: Int -> Input -> Int
+solve n = sum . M.elems . (!! n) . iterate blink
 
-part2 :: Input -> ()
-part2 = const ()
+part1 :: Input -> Int
+part1 = solve 25
+
+part2 :: Input -> Int
+part2 = solve 75
 
 prepare :: String -> Input
 prepare = freqs . map read . words
