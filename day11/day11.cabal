@@ -26,7 +26,7 @@ executable day11
                      , regex-applicative
                      , recursion-schemes
                      , lens
+                     , MemoTrie
                      , mtl
                      , transformers
                      , QuickCheck
-

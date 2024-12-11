@@ -2,6 +2,8 @@ module Main where
 
 import Control.Arrow ((&&&))
 
+import Data.MemoTrie (memo)
+
 import qualified Data.IntMap as M
 
 type Label = Int
@@ -21,9 +23,10 @@ step n | even len = let (a, b) = splitAt (len `div` 2) s
         len = length s
 
 blink :: StoneCounts -> StoneCounts
-blink m = M.unionsWith (+) $ do
+blink = \m -> M.unionsWith (+) $ do
   (label, count) <- M.assocs m
-  pure (fmap (* count) (step label))
+  pure (fmap (* count) (step' label))
+  where step' = memo step
 
 solve :: Int -> Input -> Int
 solve n = sum . M.elems . (!! n) . iterate blink
