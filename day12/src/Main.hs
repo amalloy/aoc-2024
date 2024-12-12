@@ -30,20 +30,20 @@ floodFill edges s = go S.empty (S.singleton s)
 area :: S.Set a -> Int
 area = S.size
 
-perimeter :: (Ord a, Num a) => S.Set (V2 a) -> Int
+perimeter :: S.Set (V2 Int) -> Int
 perimeter region = sum . map fencesNeeded . S.toList $ region
   where fencesNeeded = length . filter (`S.notMember` region) . neighbors
 
-align :: (Eq a, Show a) => Pair (V2 a) -> Pair [(Pair a, [a])]
+align :: Pair (V2 Int) -> Pair [(Pair Int, [Int])]
 align (V2 y1 x1, V2 y2 x2) | y1 == y2 = ([((x1, x2), [y1])], mempty)
                            | x1 == x2 = (mempty, [((y1, y2), [x1])])
                            | otherwise = error $ show (y1, x1, y2, x2)
 
-runs :: (Ord k, Ord v, Num v) => [(k, [v])] -> Int
+runs :: Ord k => [(k, [Int])] -> Int
 runs = sum . fmap (go . sort) . M.fromListWith (<>)
   where go walls = 1 + (length . filter (/= 1) $ zipWith (flip (-)) walls (tail walls))
 
-sides :: (Ord a, Num a, Show a) => S.Set (V2 a) -> Int
+sides :: S.Set (V2 Int) -> Int
 sides region = runs horiz + runs vert
   where (horiz, vert) = foldMap align fences
         fences = concatMap fencesNeeded . S.toList $ region
