@@ -2,16 +2,19 @@ module Main where
 
 import Control.Arrow ((&&&))
 import Control.Monad (guard)
+import Data.List (sort)
 import Data.Maybe (maybeToList)
 import Linear.V2 (V2(..))
 import Linear.Vector (basis)
 
 import qualified Data.Array.Unboxed as A
+import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 
 type Coord = V2 Int
 type Garden = A.UArray Coord Char
 type Input = Garden
+type Pair a = (a, a)
 
 neighbors :: Num a => V2 a -> [V2 a]
 neighbors p = (+ p) <$> ([id, negate] <*> basis)
@@ -31,23 +34,40 @@ perimeter :: (Ord a, Num a) => S.Set (V2 a) -> Int
 perimeter region = sum . map fencesNeeded . S.toList $ region
   where fencesNeeded = length . filter (`S.notMember` region) . neighbors
 
+align :: (Eq a, Show a) => Pair (V2 a) -> Pair [(Pair a, [a])]
+align (V2 y1 x1, V2 y2 x2) | y1 == y2 = ([((x1, x2), [y1])], mempty)
+                           | x1 == x2 = (mempty, [((y1, y2), [x1])])
+                           | otherwise = error $ show (y1, x1, y2, x2)
+
+runs :: (Ord k, Ord v, Num v) => [(k, [v])] -> Int
+runs = sum . fmap (go . sort) . M.fromListWith (<>)
+  where go walls = 1 + (length . filter (/= 1) $ zipWith (flip (-)) walls (tail walls))
+
+sides :: (Ord a, Num a, Show a) => S.Set (V2 a) -> Int
+sides region = runs horiz + runs vert
+  where (horiz, vert) = foldMap align fences
+        fences = concatMap fencesNeeded . S.toList $ region
+        fencesNeeded p = map (p,) . filter (`S.notMember` region) . neighbors $ p
+
+allRegions :: A.UArray (V2 Int) Char -> [S.Set (V2 Int, Char)]
+allRegions g = go (S.fromList (A.assocs g))
+  where go pending = case S.minView pending of
+          Nothing -> []
+          Just (plot, pending') -> newRegion : go (pending' `S.difference` newRegion)
+            where newRegion = floodFill connected plot
+                  connected (coord, p) = do
+                    coord' <- neighbors coord
+                    p' <- maybeToList $ g A.!? coord'
+                    guard $ p == p'
+                    pure (coord', p')
+
 part1 :: Input -> Int
 part1 = sum . map fenceCost . allRegions
   where fenceCost = liftA2 (*) area perimeter . S.map fst
-        allRegions :: A.UArray (V2 Int) Char -> [S.Set (V2 Int, Char)]
-        allRegions g = go (S.fromList (A.assocs g))
-          where go pending = case S.minView pending of
-                  Nothing -> []
-                  Just (plot, pending') -> newRegion : go (pending' `S.difference` newRegion)
-                    where newRegion = floodFill connected plot
-                          connected (coord, p) = do
-                            coord' <- neighbors coord
-                            p' <- maybeToList $ g A.!? coord'
-                            guard $ p == p'
-                            pure (coord', p')
 
-part2 :: Input -> ()
-part2 = const ()
+part2 :: Input -> Int
+part2 = sum . map fenceCost . allRegions
+  where fenceCost = liftA2 (*) area sides . S.map fst
 
 labelGrid :: String -> ((V2 Int, V2 Int), [(V2 Int, Char)])
 labelGrid text = ( (V2 1 1, V2 (length rows) (length $ head rows))
