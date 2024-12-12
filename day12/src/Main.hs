@@ -34,20 +34,18 @@ perimeter :: S.Set (V2 Int) -> Int
 perimeter region = sum . map fencesNeeded . S.toList $ region
   where fencesNeeded = length . filter (`S.notMember` region) . neighbors
 
-align :: Pair (V2 Int) -> Pair [(Pair Int, [Int])]
-align (V2 y1 x1, V2 y2 x2) | y1 == y2 = ([((x1, x2), [y1])], mempty)
-                           | x1 == x2 = (mempty, [((y1, y2), [x1])])
-                           | otherwise = error $ show (y1, x1, y2, x2)
-
-runs :: Ord k => [(k, [Int])] -> Int
-runs = sum . fmap (go . sort) . M.fromListWith (<>)
+runs :: M.Map k [Int] -> Int
+runs = sum . fmap (go . sort)
   where go walls = 1 + (length . filter (/= 1) $ zipWith (flip (-)) walls (tail walls))
 
+data Dir = Horiz | Vert deriving (Eq, Ord, Show)
 sides :: S.Set (V2 Int) -> Int
-sides region = runs horiz + runs vert
-  where (horiz, vert) = foldMap align fences
-        fences = concatMap fencesNeeded . S.toList $ region
+sides region = runs . M.unionsWith (<>) . map align $ fences
+  where fences = concatMap fencesNeeded . S.toList $ region
         fencesNeeded p = map (p,) . filter (`S.notMember` region) . neighbors $ p
+        align (V2 y1 x1, V2 y2 x2) | y1 == y2 = M.singleton (Vert, x1, x2) [y1]
+                                   | x1 == x2 = M.singleton (Horiz, y1, y2) [x1]
+                                   | otherwise = error $ show (y1, x1, y2, x2)
 
 allRegions :: A.UArray (V2 Int) Char -> [S.Set (V2 Int, Char)]
 allRegions g = go (S.fromList (A.assocs g))
