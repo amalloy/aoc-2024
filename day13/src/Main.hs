@@ -26,12 +26,16 @@ win (Machine (ax, ay) (bx, by) (gx, gy))
 
 type Input = [Machine]
 
-part1 :: Input -> Int
-part1 = sum . map score . mapMaybe win
+solve :: Input -> Int
+solve = sum . map score . mapMaybe win
   where score (a, b) = 3*a + b
 
-part2 :: Input -> ()
-part2 = const ()
+part1 :: Input -> Int
+part1 = solve
+
+part2 :: Input -> Int
+part2 = solve . map (shiftGoalposts 10000000000000)
+  where shiftGoalposts amt (Machine a b (x, y)) = Machine a b (x + amt, y + amt)
 
 prepare :: String -> Input
 prepare = maybe (error "no parse") id . match input
