@@ -29,7 +29,7 @@ finalPosition2d (w, h) n (Robot (x, y) (dx, dy)) =
   )
 
 inFirstHalf :: Integral a => a -> a -> Maybe Bool
-inFirstHalf size pos = case compare pos (size `div` 2) of
+inFirstHalf dim pos = case compare pos (dim `div` 2) of
   EQ -> Nothing
   LT -> Just True
   GT -> Just False
@@ -46,7 +46,7 @@ part1 = quadrantProduct 100
 
 -- Used to visually confirm the most coherent image is a tree
 render :: Input -> Int -> String
-render i n = unlines $ do
+render i numSteps = unlines $ do
   y <- [0..103]
   pure $ do
     x <- [0..101]
@@ -54,7 +54,7 @@ render i n = unlines $ do
       Nothing -> '.'
       Just n -> intToDigit (n `mod` 10)
   where g :: M.Map (Coord Int) Int
-        g = M.fromListWith (+) . map (,1) . map (finalPosition2d size n) $ i
+        g = M.fromListWith (+) . map (,1) . map (finalPosition2d size numSteps) $ i
 
 part2 :: Input -> Int
 part2 input = fst . minimumBy (comparing snd) $ arrangements
