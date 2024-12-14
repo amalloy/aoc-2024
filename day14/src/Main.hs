@@ -1,6 +1,5 @@
 module Main where
 
-import Control.Arrow ((&&&))
 import Data.Char (intToDigit)
 import Data.List (minimumBy)
 import Data.Maybe (mapMaybe)
@@ -71,4 +70,8 @@ prepare = maybe (error "no parse") id . match input
           <*> signed decimal
 
 main :: IO ()
-main = readFile "input.txt" >>= print . (part1 &&& part2) . prepare
+main = do
+  input <- prepare <$> readFile "input.txt"
+  let easterEggTime = part2 input
+  putStr $ render input easterEggTime
+  print (part1 input, easterEggTime)
