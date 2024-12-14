@@ -1,7 +1,10 @@
 module Main where
 
 import Control.Arrow ((&&&))
+import Data.Char (intToDigit)
+import Data.List (minimumBy)
 import Data.Maybe (mapMaybe)
+import Data.Ord (comparing)
 
 import qualified Data.Map as M
 
@@ -13,6 +16,9 @@ type RoomSize a = (a, a)
 data Robot a = Robot {position, velocity :: Coord a} deriving Show
 data ModProblem a = ModProblem {startPos, stepSize, roomSize, numSteps :: a} deriving Show
 type Input = [Robot Int]
+
+size :: Integral a => Coord a
+size = (101, 103)
 
 finalPosition1d :: Integral a => ModProblem a -> a
 finalPosition1d (ModProblem p v s n) = (p + v * n) `mod` s
@@ -32,13 +38,29 @@ inFirstHalf size pos = case compare pos (size `div` 2) of
 quadrant :: Integral a => RoomSize a -> Coord a -> Maybe (Bool, Bool)
 quadrant (w, h) (x, y) = (,) <$> inFirstHalf w x <*> inFirstHalf h y
 
-part1 :: Input -> Int
-part1 = product . freqs . mapMaybe (quadrant size . finalPosition2d size 100)
+quadrantProduct :: Int -> Input -> Int
+quadrantProduct numSteps = product . freqs . mapMaybe (quadrant size . finalPosition2d size numSteps)
   where freqs = M.fromListWith (+) . map (,1)
-        size = (101, 103)
 
-part2 :: Input -> ()
-part2 = const ()
+part1 :: Input -> Int
+part1 = quadrantProduct 100
+
+-- Used to visually confirm the most coherent image is a tree
+render :: Input -> Int -> String
+render i n = unlines $ do
+  y <- [0..103]
+  pure $ do
+    x <- [0..101]
+    pure $ case g M.!? (x, y) of
+      Nothing -> '.'
+      Just n -> intToDigit (n `mod` 10)
+  where g :: M.Map (Coord Int) Int
+        g = M.fromListWith (+) . map (,1) . map (finalPosition2d size n) $ i
+
+part2 :: Input -> Int
+part2 input = fst . minimumBy (comparing snd) $ arrangements
+  where loopLength = fst size * snd size
+        arrangements = map (\n -> (n, (n `quadrantProduct` input))) [0..loopLength]
 
 prepare :: String -> Input
 prepare = maybe (error "no parse") id . match input
